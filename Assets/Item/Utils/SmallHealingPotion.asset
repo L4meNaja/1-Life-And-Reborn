@@ -10,22 +10,22 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cd6777cd76311044487e634fb9c0c5fd, type: 3}
-  m_Name: Knife
+  m_Name: SmallHealingPotion
   m_EditorClassIdentifier: 
-  itemSlot: 2
-  damageValue: 10
-  reach: 5
-  attackSpeed: 2
+  itemSlot: 3
+  damageValue: 0
+  reach: 0
+  attackSpeed: 0
   maxAmmo: 0
   currentAmmo: 0
   invAmmo: 0
-  count: 0
-  itemTexture: {fileID: 2800000, guid: 7e3c274606949ef4f8836a2557a32605, type: 3}
-  textureSize: {x: 10, y: 20, z: 10}
-  healValue: 0
+  count: 10
+  itemTexture: {fileID: 2800000, guid: df2eddab74f764e4ba48b3c5ec5e4571, type: 3}
+  textureSize: {x: 0, y: 0, z: 0}
+  healValue: 25
   shieldValue: 0
-  itemMesh: {fileID: -2432090755550338912, guid: 4d3bdbbf8cd12ca4e8fc71e4536108a3, type: 3}
+  itemMesh: {fileID: -2432090755550338912, guid: b757b7725e7262f48bd6a649b7d9bfdd, type: 3}
   itemMaterial: {fileID: -3033667219593020291, guid: 4d3bdbbf8cd12ca4e8fc71e4536108a3, type: 3}
-  itemPos: {x: 0, y: -1, z: 0}
+  itemPos: {x: 0, y: 0, z: 0}
   itemRot: {x: 0, y: 0, z: 0}
-  itemSize: {x: 7.5, y: 7.5, z: 7.5}
+  itemSize: {x: 0, y: 0, z: 0}

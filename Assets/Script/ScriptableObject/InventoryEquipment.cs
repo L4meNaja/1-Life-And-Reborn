@@ -15,9 +15,16 @@ public class InventoryEquipment : ScriptableObject
     public Texture2D itemTexture;
     public Vector3 textureSize;
 
+    public float healValue;
+    public float shieldValue;
+
     // เปลี่ยนจาก GameObject เป็น Mesh (หรือ Transform) แทน จะลากใส่ SO ได้ทันที!
     public Mesh itemMesh; 
     public Material itemMaterial; // เก็บ Material เผื่อไว้ลงสีด้วย
+
+    public Vector3 itemPos;
+    public Vector3 itemRot;
+    public Vector3 itemSize;
 }
 
 public enum ItemSlot { Primary , Secondary , Melee , HealthPotion , ShieldPotion }

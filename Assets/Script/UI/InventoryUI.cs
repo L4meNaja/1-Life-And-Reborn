@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
+using TMPro; // เพิ่ม TMPro สำหรับ TextMeshPro
 
 public class InventoryUI : MonoBehaviour
 {
@@ -12,9 +14,11 @@ public class InventoryUI : MonoBehaviour
         public GameObject slotGameObject;       // ตัว GameObject หลักของช่องนั้น (เช่น Slot1)
         public Image slotImage;                 // ตัว Image ของกรอบช่องหลัก (ใช้ปรับ Alpha)
         public Graphic itemTextureGraphic;      // ตัวรูปไอเทมข้างใน (รองรับทั้ง Image และ RawImage)
+        public TextMeshProUGUI countText;       // ตัว TextMeshProUGUI สำหรับแสดงจำนวน (ItemCount)
         public RectTransform rectTransform;     // ใช้คุมขนาดและตำแหน่งช่องหลัก
         [HideInInspector] public Vector2 defaultAnchoredPosition;
         [HideInInspector] public Vector3 defaultScale;
+        [HideInInspector] public Vector2 defaultSizeDelta;
     }
 
     [Header("UI Slots (1 to 5)")]
@@ -25,6 +29,8 @@ public class InventoryUI : MonoBehaviour
     public float positionOffset = 20f;          // ระยะที่จะให้ขยับขึ้นไป
     public float normalAlpha = 0.4f;            // ความโปร่งใสตอนไม่ได้เลือก
     public float selectedAlpha = 0.9f;          // ความโปร่งใสตอนเลือก
+
+    private Dictionary<Texture2D, Sprite> cachedSprites = new Dictionary<Texture2D, Sprite>();
 
     void Start()
     {
@@ -48,8 +54,22 @@ public class InventoryUI : MonoBehaviour
                     }
                 }
 
+                // ค้นหา Object ชื่อ "ItemCount" ถ้ายังไม่ได้ลากใส่
+                if (slots[i].countText == null)
+                {
+                    Transform countTrans = slots[i].slotGameObject.transform.Find("ItemCount");
+                    if (countTrans != null)
+                    {
+                        slots[i].countText = countTrans.GetComponent<TextMeshProUGUI>();
+                    }
+                }
+
                 slots[i].defaultAnchoredPosition = slots[i].rectTransform.anchoredPosition;
                 slots[i].defaultScale = slots[i].rectTransform.localScale;
+                if (slots[i].itemTextureGraphic != null)
+                {
+                    slots[i].defaultSizeDelta = slots[i].itemTextureGraphic.rectTransform.sizeDelta;
+                }
             }
         }
 
@@ -60,10 +80,6 @@ public class InventoryUI : MonoBehaviour
 
         // เริ่มต้นเลือกช่อง 1 ไว้ก่อน
         HighlightSlot(0);
-    }
-
-    void Update()
-    {
         UpdateAllSlotsItemDisplay();
     }
 
@@ -87,7 +103,16 @@ public class InventoryUI : MonoBehaviour
 
             InventoryEquipment eq = equipments[i];
 
-            if (eq != null && eq.itemTexture != null)
+            bool isConsumable = (eq != null) && (eq.itemSlot == ItemSlot.HealthPotion || eq.itemSlot == ItemSlot.ShieldPotion);
+            bool hasItem = (eq != null && eq.itemTexture != null);
+            bool shouldShowGraphic = hasItem;
+
+            if (isConsumable && eq.count <= 0)
+            {
+                shouldShowGraphic = false; // ซ่อนเฉพาะยาถ้าหมด
+            }
+
+            if (shouldShowGraphic)
             {
                 slots[i].itemTextureGraphic.gameObject.SetActive(true);
 
@@ -98,16 +123,47 @@ public class InventoryUI : MonoBehaviour
                 }
                 else if (slots[i].itemTextureGraphic is Image img)
                 {
-                    img.sprite = Sprite.Create(eq.itemTexture, new Rect(0, 0, eq.itemTexture.width, eq.itemTexture.height), new Vector2(0.5f, 0.5f));
+                    if (!cachedSprites.ContainsKey(eq.itemTexture))
+                    {
+                        Sprite newSprite = Sprite.Create(eq.itemTexture, new Rect(0, 0, eq.itemTexture.width, eq.itemTexture.height), new Vector2(0.5f, 0.5f));
+                        cachedSprites[eq.itemTexture] = newSprite;
+                    }
+                    img.sprite = cachedSprites[eq.itemTexture];
                 }
 
-                // === ปรับขนาด (SizeDelta) ตาม textureSize ใน ScriptableObject อัตโนมัติ ===
+                // === ปรับขนาดโดยใช้ LocalScale ตาม textureSize ใน ScriptableObject อัตโนมัติ ===
                 RectTransform texRect = slots[i].itemTextureGraphic.rectTransform;
-                texRect.sizeDelta = eq.textureSize;
+                if (eq.textureSize.x > 0 && eq.textureSize.y > 0)
+                {
+                    texRect.localScale = eq.textureSize;
+                }
+                else
+                {
+                    texRect.localScale = new Vector3(10, 10, 10);
+                }
+
+                // แสดงจำนวน ItemCount (แสดงเฉพาะช่อง 4 และ 5)
+                if (slots[i].countText != null)
+                {
+                    if (isConsumable)
+                    {
+                        slots[i].countText.gameObject.SetActive(true);
+                        slots[i].countText.text = eq.count.ToString();
+                    }
+                    else
+                    {
+                        slots[i].countText.gameObject.SetActive(false); // ซ่อนเลขของพวกอาวุธ
+                    }
+                }
             }
             else
             {
+                // ถ้าไม่มีไอเทม หรือเป็นยาที่หมดแล้ว
                 slots[i].itemTextureGraphic.gameObject.SetActive(false);
+                if (slots[i].countText != null)
+                {
+                    slots[i].countText.gameObject.SetActive(false);
+                }
             }
         }
     }

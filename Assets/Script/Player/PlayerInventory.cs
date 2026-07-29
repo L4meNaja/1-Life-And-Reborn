@@ -28,6 +28,86 @@ public class PlayerInventory : MonoBehaviour
     void Update()
     {
         CheckNumberInput();
+        CheckUseItem();
+    }
+
+    void CheckUseItem()
+    {
+        // ใช้ไอเทมเมื่อกดคลิกซ้าย (หรือเปลี่ยนเป็นปุ่มอื่นได้ตามต้องการ)
+        if (Input.GetMouseButtonDown(0))
+        {
+            UseCurrentItem();
+        }
+    }
+
+    void UseCurrentItem()
+    {
+        // ใช้ได้เฉพาะไอเทมที่เป็น Consumable (ช่อง 4 HealthPotion, ช่อง 5 ShieldPotion)
+        if (currentSelectedSlot != ItemSlot.HealthPotion && currentSelectedSlot != ItemSlot.ShieldPotion) return;
+
+        InventoryEquipment currentEq = GetEquipmentBySlot(currentSelectedSlot);
+        
+        // ตรวจสอบว่ามีไอเทมถืออยู่ไหม และจำนวนมากกว่า 0 ไหม
+        if (currentEq == null || currentEq.count <= 0) return;
+
+        bool isUsed = false;
+
+        // เช็คการฮีลเลือด
+        if (currentEq.healValue > 0)
+        {
+            PlayerStats.playerStats.currentHP += currentEq.healValue;
+            if (PlayerStats.playerStats.currentHP > PlayerStats.playerStats.maxHP)
+                PlayerStats.playerStats.currentHP = PlayerStats.playerStats.maxHP;
+            isUsed = true;
+        }
+
+        // เช็คการเพิ่มเกราะ
+        if (currentEq.shieldValue > 0)
+        {
+            PlayerStats.playerStats.currentShield += currentEq.shieldValue;
+            if (PlayerStats.playerStats.currentShield > PlayerStats.playerStats.maxShield)
+                PlayerStats.playerStats.currentShield = PlayerStats.playerStats.maxShield;
+            isUsed = true;
+        }
+
+        // ถ้าใช้ไอเทมสำเร็จ (มี heal หรือ shield อย่างใดอย่างหนึ่ง)
+        if (isUsed)
+        {
+            currentEq.count--;
+            Debug.Log($"ใช้ไอเทม {currentEq.name} ไปแล้ว! เหลือ: {currentEq.count}");
+
+            // ถ้าใช้หมดแล้ว ลบออกจากช่องไปเลย
+            if (currentEq.count <= 0)
+            {
+                RemoveEquipmentFromSlot(currentSelectedSlot);
+            }
+
+            // อัปเดต UI 
+            if (inventoryUI != null)
+            {
+                inventoryUI.UpdateAllSlotsItemDisplay();
+            }
+        }
+    }
+
+    void RemoveEquipmentFromSlot(ItemSlot slot)
+    {
+        // ล้างข้อมูลใน SO ช่องนั้น
+        switch (slot)
+        {
+            case ItemSlot.Primary: primaryEquipment = null; break;
+            case ItemSlot.Secondary: secondaryEquipment = null; break;
+            case ItemSlot.Melee: meleeEquipment = null; break;
+            case ItemSlot.HealthPotion: healthPotionEquipment = null; break;
+            case ItemSlot.ShieldPotion: shieldPotionEquipment = null; break;
+        }
+
+        // ถ้ากำลังถือไอเทมนี้อยู่ ให้ลบโมเดลทิ้งด้วย
+        if (currentSelectedSlot == slot && currentSpawnedModel != null)
+        {
+            Destroy(currentSpawnedModel);
+            currentSpawnedModel = null;
+        }
     }
 
     void CheckNumberInput()
@@ -90,10 +170,16 @@ public class PlayerInventory : MonoBehaviour
             currentSpawnedModel = new GameObject("EquippedItem_Mesh");
             currentSpawnedModel.transform.SetParent(handTransform);
             
-            // รีเซ็ตตำแหน่ง มุมหมุน และสเกลให้อยู่พอดีกับมือ
-            currentSpawnedModel.transform.localPosition = Vector3.zero;
-            currentSpawnedModel.transform.localRotation = Quaternion.identity;
-            currentSpawnedModel.transform.localScale = Vector3.one;
+            // ตั้งค่าตำแหน่ง มุมหมุน และสเกลจาก ScriptableObject
+            currentSpawnedModel.transform.localPosition = equipment.itemPos;
+            currentSpawnedModel.transform.localRotation = Quaternion.Euler(equipment.itemRot);
+            
+            // ใช้ itemSize ถ้ามีการตั้งค่าไว้ (ป้องกันกรณีค่าเป็น 0,0,0 แล้วโมเดลล่องหน)
+            if (equipment.itemSize != Vector3.zero)
+                currentSpawnedModel.transform.localScale = equipment.itemSize;
+            else
+                currentSpawnedModel.transform.localScale = Vector3.one;
+
     
             // เพิ่ม MeshFilter เพื่อใส่รูปทรง 3D
             MeshFilter mf = currentSpawnedModel.AddComponent<MeshFilter>();
