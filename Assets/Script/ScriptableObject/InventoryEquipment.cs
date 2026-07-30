@@ -11,10 +11,10 @@ public class InventoryEquipment : ScriptableObject
     public int maxAmmo;
     public int currentAmmo;
     public int invAmmo;
-    public int count;
     public Texture2D itemTexture;
     public Vector3 textureSize;
 
+    public float reloadTime;
     public float healValue;
     public float shieldValue;
 

@@ -39,6 +39,13 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        // ซ่อนเมาส์และล็อคไว้ตรงกลางหน้าจอเสมอเวลากดคลิก (เผื่อเผลอกด Esc แล้วเมาส์หลุดไปที่ UI)
+        if (Input.GetMouseButtonDown(0))
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
         if (PlayerStats.playerStats != null)
         {
             baseSpeed = PlayerStats.playerStats.spd;

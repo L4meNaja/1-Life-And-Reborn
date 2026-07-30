@@ -14,7 +14,8 @@ public class InventoryUI : MonoBehaviour
         public GameObject slotGameObject;       // ตัว GameObject หลักของช่องนั้น (เช่น Slot1)
         public Image slotImage;                 // ตัว Image ของกรอบช่องหลัก (ใช้ปรับ Alpha)
         public Graphic itemTextureGraphic;      // ตัวรูปไอเทมข้างใน (รองรับทั้ง Image และ RawImage)
-        public TextMeshProUGUI countText;       // ตัว TextMeshProUGUI สำหรับแสดงจำนวน (ItemCount)
+        public TextMeshProUGUI countText;       // ตัวแสดงจำนวนยา หรือ กระสุนปัจจุบัน
+        public TextMeshProUGUI ammoInvText;     // ตัวแสดงจำนวนกระสุนสำรอง (ถ้ามี)
         public RectTransform rectTransform;     // ใช้คุมขนาดและตำแหน่งช่องหลัก
         [HideInInspector] public Vector2 defaultAnchoredPosition;
         [HideInInspector] public Vector3 defaultScale;
@@ -64,6 +65,16 @@ public class InventoryUI : MonoBehaviour
                     }
                 }
 
+                // ค้นหา Object ชื่อ "AmmoInv" อัตโนมัติเผื่อลืมลากใส่
+                if (slots[i].ammoInvText == null)
+                {
+                    Transform ammoInvTrans = slots[i].slotGameObject.transform.Find("AmmoInv");
+                    if (ammoInvTrans != null)
+                    {
+                        slots[i].ammoInvText = ammoInvTrans.GetComponent<TextMeshProUGUI>();
+                    }
+                }
+
                 slots[i].defaultAnchoredPosition = slots[i].rectTransform.anchoredPosition;
                 slots[i].defaultScale = slots[i].rectTransform.localScale;
                 if (slots[i].itemTextureGraphic != null)
@@ -107,7 +118,10 @@ public class InventoryUI : MonoBehaviour
             bool hasItem = (eq != null && eq.itemTexture != null);
             bool shouldShowGraphic = hasItem;
 
-            if (isConsumable && eq.count <= 0)
+            // ดึง count จาก PlayerInventory แทน SO
+            int itemCount = isConsumable ? playerInventory.GetCountBySlot(eq.itemSlot) : -1;
+
+            if (isConsumable && itemCount <= 0)
             {
                 shouldShowGraphic = false; // ซ่อนเฉพาะยาถ้าหมด
             }
@@ -142,17 +156,40 @@ public class InventoryUI : MonoBehaviour
                     texRect.localScale = new Vector3(10, 10, 10);
                 }
 
-                // แสดงจำนวน ItemCount (แสดงเฉพาะช่อง 4 และ 5)
+                bool isGun = (eq.itemSlot == ItemSlot.Primary || eq.itemSlot == ItemSlot.Secondary);
+
+                // แสดงจำนวน ItemCount (ยา หรือ กระสุนแม็กกาซีน)
                 if (slots[i].countText != null)
                 {
                     if (isConsumable)
                     {
                         slots[i].countText.gameObject.SetActive(true);
-                        slots[i].countText.text = eq.count.ToString();
+                        slots[i].countText.text = itemCount.ToString();
+                    }
+                    else if (isGun)
+                    {
+                        slots[i].countText.gameObject.SetActive(true);
+                        int currentAmmo = eq.itemSlot == ItemSlot.Primary ? playerInventory.primaryAmmoCount : playerInventory.secondaryAmmoCount;
+                        slots[i].countText.text = currentAmmo.ToString();
                     }
                     else
                     {
-                        slots[i].countText.gameObject.SetActive(false); // ซ่อนเลขของพวกอาวุธ
+                        slots[i].countText.gameObject.SetActive(false); // ซ่อนเลขของมีด
+                    }
+                }
+
+                // แสดงจำนวนกระสุนสำรอง (แสดงเฉพาะปืน)
+                if (slots[i].ammoInvText != null)
+                {
+                    if (isGun)
+                    {
+                        slots[i].ammoInvText.gameObject.SetActive(true);
+                        int invAmmo = eq.itemSlot == ItemSlot.Primary ? playerInventory.primaryInvAmmo : playerInventory.secondaryInvAmmo;
+                        slots[i].ammoInvText.text = invAmmo.ToString();
+                    }
+                    else
+                    {
+                        slots[i].ammoInvText.gameObject.SetActive(false);
                     }
                 }
             }
@@ -160,10 +197,8 @@ public class InventoryUI : MonoBehaviour
             {
                 // ถ้าไม่มีไอเทม หรือเป็นยาที่หมดแล้ว
                 slots[i].itemTextureGraphic.gameObject.SetActive(false);
-                if (slots[i].countText != null)
-                {
-                    slots[i].countText.gameObject.SetActive(false);
-                }
+                if (slots[i].countText != null) slots[i].countText.gameObject.SetActive(false);
+                if (slots[i].ammoInvText != null) slots[i].ammoInvText.gameObject.SetActive(false);
             }
         }
     }
