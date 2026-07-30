@@ -21,8 +21,6 @@ public class ScanlineEffect : MonoBehaviour
         rawImage.uvRect = uv;
         Color c = rawImage.color;
 
-c.a = 0.1f + Mathf.Sin(Time.time * 2f) * 0.02f;
 
-rawImage.color = c;
     }
 }
