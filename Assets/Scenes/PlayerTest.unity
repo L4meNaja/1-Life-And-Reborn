@@ -2256,6 +2256,7 @@ MonoBehaviour:
   lookXLimit: 45
   defaultHeight: 2
   crouchHeight: 1
+  canMove: 1
 --- !u!143 &882555721
 CharacterController:
   m_ObjectHideFlags: 0

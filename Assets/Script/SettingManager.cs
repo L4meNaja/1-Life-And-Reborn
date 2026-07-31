@@ -21,7 +21,7 @@ public class SettingManager : MonoBehaviour
 
     private bool isPaused = false;
     private float maxBgmVolume = 0.5f;
-    public Test_Player player;
+    public PlayerMovement player;
 
     void Start()
     {
