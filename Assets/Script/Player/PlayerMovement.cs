@@ -1,18 +1,23 @@
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
-public class Test_Player : MonoBehaviour
+public class PlayerMovement : MonoBehaviour
 {
     public Camera playerCamera;
-    public float walkSpeed = 6f;
-    public float runSpeed = 12f;
+    
+    [Header("Speed Settings")]
+    public float baseSpeed = 10f;
+    
+    public float walkSpeedMultiplier = 0.6f;  
+    public float runSpeedMultiplier = 1.2f;   
+    public float crouchSpeedMultiplier = 0.3f;
+
     public float jumpPower = 7f;
     public float gravity = 10f;
     public float lookSpeed = 2f;
     public float lookXLimit = 45f;
     public float defaultHeight = 2f;
     public float crouchHeight = 1f;
-    public float crouchSpeed = 3f;
 
     private Vector3 moveDirection = Vector3.zero;
     private float rotationX = 0;
@@ -25,17 +30,52 @@ public class Test_Player : MonoBehaviour
         characterController = GetComponent<CharacterController>();
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        if (PlayerStats.playerStats != null)
+        {
+            baseSpeed = PlayerStats.playerStats.spd;
+        }
     }
 
     void Update()
     {
+        // ซ่อนเมาส์และล็อคไว้ตรงกลางหน้าจอเสมอเวลากดคลิก (เผื่อเผลอกด Esc แล้วเมาส์หลุดไปที่ UI)
+        if (Input.GetMouseButtonDown(0))
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+
+        if (PlayerStats.playerStats != null)
+        {
+            baseSpeed = PlayerStats.playerStats.spd;
+        }
+
         Vector3 forward = transform.TransformDirection(Vector3.forward);
         Vector3 right = transform.TransformDirection(Vector3.right);
 
+        float currentWalkSpeed = baseSpeed * walkSpeedMultiplier;
+        float currentRunSpeed = baseSpeed * runSpeedMultiplier;
+        float currentCrouchSpeed = baseSpeed * crouchSpeedMultiplier;
+
         bool isRunning = Input.GetKey(KeyCode.LeftShift);
-        float curSpeedX = canMove ? (isRunning ? runSpeed : walkSpeed) * Input.GetAxis("Vertical") : 0;
-        float curSpeedY = canMove ? (isRunning ? runSpeed : walkSpeed) * Input.GetAxis("Horizontal") : 0;
+        
+        float targetSpeed = currentWalkSpeed;
+        if (Input.GetKey(KeyCode.LeftControl) && canMove)
+        {
+            characterController.height = crouchHeight;
+            targetSpeed = currentCrouchSpeed;
+        }
+        else
+        {
+            characterController.height = defaultHeight;
+            targetSpeed = isRunning ? currentRunSpeed : currentWalkSpeed;
+        }
+
+        float curSpeedX = canMove ? targetSpeed * Input.GetAxis("Vertical") : 0;
+        float curSpeedY = canMove ? targetSpeed * Input.GetAxis("Horizontal") : 0;
         float movementDirectionY = moveDirection.y;
+        
         moveDirection = (forward * curSpeedX) + (right * curSpeedY);
 
         if (Input.GetButton("Jump") && canMove && characterController.isGrounded)
@@ -50,20 +90,6 @@ public class Test_Player : MonoBehaviour
         if (!characterController.isGrounded)
         {
             moveDirection.y -= gravity * Time.deltaTime;
-        }
-
-        if (Input.GetKey(KeyCode.R) && canMove)
-        {
-            characterController.height = crouchHeight;
-            walkSpeed = crouchSpeed;
-            runSpeed = crouchSpeed;
-
-        }
-        else
-        {
-            characterController.height = defaultHeight;
-            walkSpeed = 6f;
-            runSpeed = 12f;
         }
 
         characterController.Move(moveDirection * Time.deltaTime);
