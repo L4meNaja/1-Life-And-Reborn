@@ -27,7 +27,8 @@ public class InventoryUI : MonoBehaviour
 
     [Header("Highlight Settings")]
     public float scaleMultiplier = 1.25f;       // ขยายใหญ่ขึ้น 1.25 เท่า
-    public float positionOffset = 20f;          // ระยะที่จะให้ขยับขึ้นไป
+    public float positionOffsetY = 20f;          // ระยะที่จะให้ขยับขึ้นไป
+    public float positionOffsetX = -50f; 
     public float normalAlpha = 0.4f;            // ความโปร่งใสตอนไม่ได้เลือก
     public float selectedAlpha = 0.9f;          // ความโปร่งใสตอนเลือก
 
@@ -213,7 +214,7 @@ public class InventoryUI : MonoBehaviour
             {
                 // === ช่องที่ถูกเลือก ===
                 slots[i].rectTransform.localScale = slots[i].defaultScale * scaleMultiplier;
-                slots[i].rectTransform.anchoredPosition = slots[i].defaultAnchoredPosition + new Vector2(0, positionOffset);
+                slots[i].rectTransform.anchoredPosition = slots[i].defaultAnchoredPosition + new Vector2(positionOffsetX, positionOffsetY);
                 
                 // ปรับ Alpha กรอบช่อง
                 if (slots[i].slotImage != null)
