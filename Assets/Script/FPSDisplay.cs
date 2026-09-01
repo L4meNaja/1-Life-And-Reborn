@@ -72,7 +72,7 @@ public class FPSDisplay : MonoBehaviour
         Rect rect = new Rect(20, 20, w, h * 2 / 100);
         style.alignment = TextAnchor.UpperLeft;
         style.fontSize = h * 3 / 100; 
-        style.normal.textColor = Color.red; 
+        style.normal.textColor = Color.green; 
 
         string text = string.Format("{0:0.} FPS", currentFPS);
         GUI.Label(rect, text, style);
