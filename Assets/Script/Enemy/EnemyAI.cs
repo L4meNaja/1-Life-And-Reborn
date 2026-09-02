@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[RequireComponent(typeof(CharacterController))]
 public class EnemyAI : MonoBehaviour
 {
     [Header("Stats")]
@@ -7,57 +8,91 @@ public class EnemyAI : MonoBehaviour
     public float currentHP;
     public float attackDamage = 10f;
 
+    [Header("Detection")]
+    public float detectionRange = 10f;
+
     [Header("Movement")]
     public float moveSpeed = 4f;
-    public float stoppingDistance = 2f; // ระยะที่หยุดเดินแล้วเริ่มตี
+    public float stoppingDistance = 2f;
 
     [Header("Attack")]
-    public float attackCooldown = 1.5f; // คูลดาวน์ระหว่างการโจมตี (วินาที)
-    public float attackRange = 2.5f;    // ระยะโจมตี
-    private float lastAttackTime = -999f;
+    public float attackCooldown = 1.5f;
+    public float attackRange = 2.5f;
 
+    private float lastAttackTime = -999f;
     private Transform playerTransform;
+    private CharacterController characterController;
 
     void Start()
     {
         currentHP = maxHP;
 
-        // ค้นหา Player จาก Tag
+        characterController = GetComponent<CharacterController>();
+
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+
         if (playerObj != null)
         {
             playerTransform = playerObj.transform;
+            Debug.Log("Enemy เจอ Player แล้ว!");
         }
         else
         {
-            Debug.LogWarning("ไม่เจอ GameObject ที่มี Tag 'Player'!");
+            Debug.LogError("Enemy หา Player ไม่เจอ! เช็ก Tag Player");
         }
     }
 
     void Update()
     {
-        if (playerTransform == null) return;
-        if (currentHP <= 0) return;
+        if (playerTransform == null)
+            return;
 
-        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
+        if (currentHP <= 0)
+            return;
 
-        // เดินเข้าหา Player
-        if (distanceToPlayer > stoppingDistance)
+        float distanceToPlayer =
+            Vector3.Distance(transform.position, playerTransform.position);
+
+        // ==============================
+        // อยู่นอกระยะ Detection
+        // ==============================
+
+        if (distanceToPlayer > detectionRange)
         {
-            Vector3 direction = (playerTransform.position - transform.position).normalized;
-            direction.y = 0; // ไม่ให้บินขึ้น/ลง
-            transform.position += direction * moveSpeed * Time.deltaTime;
-
-            // หันหน้าไปหา Player
-            transform.LookAt(new Vector3(playerTransform.position.x, transform.position.y, playerTransform.position.z));
+            return;
         }
 
-        // โจมตีถ้าอยู่ในระยะ
+        // ==============================
+        // อยู่ใน Detection Range
+        // ==============================
+
+        if (distanceToPlayer > stoppingDistance)
+        {
+            Vector3 direction =
+                playerTransform.position - transform.position;
+
+            direction.y = 0f;
+
+            if (direction.sqrMagnitude > 0.01f)
+            {
+                direction.Normalize();
+
+                characterController.Move(
+                    direction * moveSpeed * Time.deltaTime
+                );
+            }
+        }
+
+        // ==============================
+        // Attack
+        // ==============================
+
         if (distanceToPlayer <= attackRange)
         {
             if (Time.time - lastAttackTime >= attackCooldown)
             {
                 AttackPlayer();
+
                 lastAttackTime = Time.time;
             }
         }
@@ -65,8 +100,10 @@ public class EnemyAI : MonoBehaviour
 
     void AttackPlayer()
     {
-        Debug.Log($"{gameObject.name} โจมตี Player! Damage: {attackDamage}");
-        
+        Debug.Log(
+            $"{gameObject.name} โจมตี Player! Damage: {attackDamage}"
+        );
+
         if (PlayerStats.playerStats != null)
         {
             PlayerStats.playerStats.TakeDamage(attackDamage);
@@ -76,7 +113,10 @@ public class EnemyAI : MonoBehaviour
     public void TakeDamage(float damage)
     {
         currentHP -= damage;
-        Debug.Log($"{gameObject.name} โดนตี! HP เหลือ: {currentHP}/{maxHP}");
+
+        Debug.Log(
+            $"{gameObject.name} โดนตี! HP เหลือ: {currentHP}/{maxHP}"
+        );
 
         if (currentHP <= 0)
         {
@@ -87,6 +127,17 @@ public class EnemyAI : MonoBehaviour
     void Die()
     {
         Debug.Log($"{gameObject.name} ตายแล้ว!");
+
         Destroy(gameObject);
+    }
+
+    // แสดง Detection Range ใน Scene
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRange);
+
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }

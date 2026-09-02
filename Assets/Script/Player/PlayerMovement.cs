@@ -1,17 +1,16 @@
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
+
 public class PlayerMovement : MonoBehaviour
 {
     public Camera playerCamera;
-    
+
     [Header("Speed Settings")]
     public float baseSpeed = 10f;
-    
-    public float walkSpeedMultiplier = 0.6f;  
-    public float runSpeedMultiplier = 1.2f;   
+    public float walkSpeedMultiplier = 0.6f;
+    public float runSpeedMultiplier = 1.2f;
     public float crouchSpeedMultiplier = 0.3f;
-
     public float jumpPower = 7f;
     public float gravity = 10f;
     public float lookSpeed = 2f;
@@ -25,27 +24,37 @@ public class PlayerMovement : MonoBehaviour
 
     public bool canMove = true;
 
+    [Header("Footstep Sound")]
+    public AudioSource footstepSource;
+    public AudioClip footstepClip;
+
+    [Range(0.5f, 2f)]
+    public float footstepPitch = 1f;
+
     void Start()
     {
         characterController = GetComponent<CharacterController>();
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
 
         if (PlayerStats.playerStats != null)
         {
             baseSpeed = PlayerStats.playerStats.spd;
         }
+
+        // ตั้งค่า AudioSource
+        if (footstepSource != null)
+        {
+            footstepSource.loop = true;
+            footstepSource.playOnAwake = false;
+            footstepSource.clip = footstepClip;
+            footstepSource.pitch = footstepPitch;
+        }
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void Update()
     {
-        // ซ่อนเมาส์และล็อคไว้ตรงกลางหน้าจอเสมอเวลากดคลิก (เผื่อเผลอกด Esc แล้วเมาส์หลุดไปที่ UI)
-        if (Input.GetMouseButtonDown(0))
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-        }
-
         if (PlayerStats.playerStats != null)
         {
             baseSpeed = PlayerStats.playerStats.spd;
@@ -59,8 +68,9 @@ public class PlayerMovement : MonoBehaviour
         float currentCrouchSpeed = baseSpeed * crouchSpeedMultiplier;
 
         bool isRunning = Input.GetKey(KeyCode.LeftShift);
-        
+
         float targetSpeed = currentWalkSpeed;
+
         if (Input.GetKey(KeyCode.LeftControl) && canMove)
         {
             characterController.height = crouchHeight;
@@ -74,8 +84,9 @@ public class PlayerMovement : MonoBehaviour
 
         float curSpeedX = canMove ? targetSpeed * Input.GetAxis("Vertical") : 0;
         float curSpeedY = canMove ? targetSpeed * Input.GetAxis("Horizontal") : 0;
+
         float movementDirectionY = moveDirection.y;
-        
+
         moveDirection = (forward * curSpeedX) + (right * curSpeedY);
 
         if (Input.GetButton("Jump") && canMove && characterController.isGrounded)
@@ -94,12 +105,50 @@ public class PlayerMovement : MonoBehaviour
 
         characterController.Move(moveDirection * Time.deltaTime);
 
+        // =========================
+        // Footstep Sound
+        // =========================
+
+        bool isMoving =
+            canMove &&
+            characterController.isGrounded &&
+            new Vector3(curSpeedX, 0, curSpeedY).magnitude > 0.1f;
+
+        if (isMoving)
+        {
+            if (footstepSource != null &&
+                footstepClip != null &&
+                !footstepSource.isPlaying)
+            {
+                footstepSource.Play();
+            }
+        }
+        else
+        {
+            if (footstepSource != null && footstepSource.isPlaying)
+            {
+                footstepSource.Stop();
+            }
+        }
+
+        // =========================
+        // Camera / Mouse Look
+        // =========================
+
         if (canMove)
         {
             rotationX += -Input.GetAxis("Mouse Y") * lookSpeed;
             rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
-            playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
-            transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeed, 0);
+
+            playerCamera.transform.localRotation =
+                Quaternion.Euler(rotationX, 0, 0);
+
+            transform.rotation *=
+                Quaternion.Euler(
+                    0,
+                    Input.GetAxis("Mouse X") * lookSpeed,
+                    0
+                );
         }
     }
 }
