@@ -12,6 +12,15 @@ public class PlayerMovement : MonoBehaviour
     public float runSpeedMultiplier = 1.2f;   
     public float crouchSpeedMultiplier = 0.3f;
 
+    [Header("Slide Settings")]
+    public float slideSpeedMultiplier = 1.6f; // ความเร็วตอนสไลด์ (แรงกว่าวิ่งปกติ)
+    private bool isSliding = false;
+    private float slideTimer = 0f;
+    private float slideDuration = 0.75f;       // เวลาสไลด์ 1 วินาที
+    private Vector3 slideDirection;           // ทิศทางที่จะพุ่งไปตอนสไลด์
+
+    public float sliderTimer = 2.0f;
+
     public float jumpPower = 7f;
     public float gravity = 10f;
     public float lookSpeed = 2f;
@@ -45,6 +54,16 @@ public class PlayerMovement : MonoBehaviour
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
+        
+        if (sliderTimer > 0)
+        {
+            if (sliderTimer > 2.0f)
+            {
+                sliderTimer = 2.0f;
+            }
+            
+            sliderTimer -= Time.deltaTime;
+        }
 
         if (PlayerStats.playerStats != null)
         {
@@ -57,11 +76,36 @@ public class PlayerMovement : MonoBehaviour
         float currentWalkSpeed = baseSpeed * walkSpeedMultiplier;
         float currentRunSpeed = baseSpeed * runSpeedMultiplier;
         float currentCrouchSpeed = baseSpeed * crouchSpeedMultiplier;
+        float currentSlideSpeed = baseSpeed * slideSpeedMultiplier;
 
         bool isRunning = Input.GetKey(KeyCode.LeftShift);
-        
+        bool isPressingCrouch = Input.GetKey(KeyCode.LeftControl);
+
+        // เช็คเงื่อนไขเริ่มสไลด์: ต้องอยู่บนพื้น กำลังวิ่งอยู่ แล้วจังหวะนั้นกดย่อลงพอดี (GetKeyDown)
+        if (characterController.isGrounded && isRunning && Input.GetKeyDown(KeyCode.LeftControl) && !isSliding && canMove)
+        {
+            isSliding = true;
+            slideTimer = slideDuration;
+            // ล็อคทิศทางข้างหน้าที่กำลังมองหรือกำลังเดินอยู่ตอนกดสไลด์
+            slideDirection = forward;
+            slideDirection.y = 0;
+            slideDirection = slideDirection.normalized;
+        }
+
         float targetSpeed = currentWalkSpeed;
-        if (Input.GetKey(KeyCode.LeftControl) && canMove)
+
+        if (isSliding)
+        {
+            characterController.height = crouchHeight;
+            targetSpeed = currentSlideSpeed;
+
+            slideTimer -= Time.deltaTime;
+            if (slideTimer <= 0 || !canMove)
+            {
+                isSliding = false; // หมดเวลา 1 วิ หยุดสไลด์
+            }
+        }
+        else if (isPressingCrouch && canMove)
         {
             characterController.height = crouchHeight;
             targetSpeed = currentCrouchSpeed;
@@ -72,11 +116,34 @@ public class PlayerMovement : MonoBehaviour
             targetSpeed = isRunning ? currentRunSpeed : currentWalkSpeed;
         }
 
-        float curSpeedX = canMove ? targetSpeed * Input.GetAxis("Vertical") : 0;
-        float curSpeedY = canMove ? targetSpeed * Input.GetAxis("Horizontal") : 0;
+        float curSpeedX = 0;
+        float curSpeedY = 0;
+
+        if (canMove)
+        {
+            if (isSliding)
+            {
+                // ถ้ากำลังสไลด์ จะไม่สนปุ่มบังคับทิศทาง แต่จะพุ่งไปตามทิศทางสไลด์ตรงๆ เองเลย
+                curSpeedX = targetSpeed; 
+                curSpeedY = 0;
+            }
+            else
+            {
+                curSpeedX = targetSpeed * Input.GetAxis("Vertical");
+                curSpeedY = targetSpeed * Input.GetAxis("Horizontal");
+            }
+        }
+
         float movementDirectionY = moveDirection.y;
         
-        moveDirection = (forward * curSpeedX) + (right * curSpeedY);
+        if (isSliding)
+        {
+            moveDirection = slideDirection * curSpeedX;
+        }
+        else
+        {
+            moveDirection = (forward * curSpeedX) + (right * curSpeedY);
+        }
 
         if (Input.GetButton("Jump") && canMove && characterController.isGrounded)
         {

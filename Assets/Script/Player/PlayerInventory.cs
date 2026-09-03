@@ -131,53 +131,70 @@ public class PlayerInventory : MonoBehaviour
 
         // อัปเดต UI 
         if (inventoryUI != null) inventoryUI.UpdateAllSlotsItemDisplay();
-
+        
         // สร้างเม็ดกระสุน
         Camera cam = Camera.main;
         if (cam == null) cam = GetComponentInChildren<Camera>();
         if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
         if (cam == null) return;
 
-        // 1. กำหนดจุดเกิดกระสุนให้ออกมาจากปืน
+        // 1. กำหนดจุดเกิดกระสุนให้ออกมาจากตำแหน่ง ammoSpawnPos ที่ตั้งไว้ใน ScriptableObject ของปืนนั้นๆ
         Vector3 spawnPos = handTransform.position;
         if (currentSpawnedModel != null)
         {
-            spawnPos = currentSpawnedModel.transform.position;
+            spawnPos = currentSpawnedModel.transform.TransformPoint(gunEq.ammoSpawnPos);
         }
 
-        // 2. สร้างกระสุน
-        GameObject bulletObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        bulletObj.transform.position = spawnPos;
-        
-        // หันหน้ากระสุนให้พุ่งตรงไปข้างหน้าอิงจาก "ตัวละครผู้เล่น (อิง 0)" แทนที่จะอิงโมเดลปืน (ที่โดนหมุน -90)
-        bulletObj.transform.rotation = transform.rotation;
-        bulletObj.transform.localScale = new Vector3(0.2f, 0.2f, 0.2f); // ขยายขนาดขึ้นนิดนึงให้มองเห็น
+        // กำหนดจำนวนกระสุนต่อการยิง 1 ครั้ง (ถ้าไม่ได้ตั้งค่าใน SO ให้เป็น 1)
+        int count = gunEq.bulletCount > 0 ? gunEq.bulletCount : 1;
 
-        // ลบ Collider เก่าทิ้ง เพราะเราใช้ Raycast ในสคริปต์ Bullet.cs แล้ว (ลบเพื่อป้องกัน Physics กวนกัน)
-        Destroy(bulletObj.GetComponent<Collider>());
-
-        // ปิดเงาให้กระสุนและเปลี่ยนเป็นสีเหลือง
-        MeshRenderer mr = bulletObj.GetComponent<MeshRenderer>();
-        if (mr != null)
+        // วนลูปสร้างกระสุนตามจำนวน bulletCount (รองรับทั้งปืนปกติและลูกซอง)
+        for (int i = 0; i < count; i++)
         {
-            mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            mr.receiveShadows = false;
-            mr.material.color = Color.yellow;
+            // 2. สร้างกระสุน
+            GameObject bulletObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            bulletObj.transform.position = spawnPos;
+            
+            // ตั้งต้นการหมุนจากทิศทางของตัวละครผู้เล่น
+            Quaternion baseRotation = transform.rotation;
+
+            // คำนวณการกระจาย (Spread) ใช้ได้ทั้ง bulletCount = 1 หรือมากกว่า
+            float spreadAmount = gunEq.bulletSpread;
+            float randomYaw = Random.Range(-spreadAmount, spreadAmount);
+            float randomPitch = Random.Range(-spreadAmount, spreadAmount);
+            
+            // เพิ่มมุมสุ่มความกระจายเข้าไปจากทิศทางหลัก
+            Quaternion spreadRotation = Quaternion.Euler(randomPitch, randomYaw, 0f);
+            bulletObj.transform.rotation = baseRotation * spreadRotation;
+
+            bulletObj.transform.localScale = new Vector3(0.0f, 0.0f, 0.0f);
+
+            // ลบ Collider เก่าทิ้ง ป้องกัน Physics กวนกัน
+            Destroy(bulletObj.GetComponent<Collider>());
+
+            // ปิดเงาให้กระสุนและเปลี่ยนเป็นสีเหลือง
+            MeshRenderer mr = bulletObj.GetComponent<MeshRenderer>();
+            if (mr != null)
+            {
+                mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                mr.receiveShadows = false;
+                mr.material.color = Color.yellow;
+            }
+
+            // เพิ่มแสงหาง (Trail)
+            TrailRenderer tr = bulletObj.AddComponent<TrailRenderer>();
+            tr.time = 0.1f;
+            tr.startWidth = 0.1f;
+            tr.endWidth = 0f;
+            tr.material = new Material(Shader.Find("Sprites/Default"));
+            tr.startColor = Color.yellow;
+            tr.endColor = new Color(1, 1, 0, 0);
+
+            // ติดสคริปต์ Bullet
+            Bullet bulletScript = bulletObj.AddComponent<Bullet>();
+            bulletScript.damage = gunEq.damageValue;
+            bulletScript.speed = 100f;
         }
-
-        // เพิ่มแสงหาง (Trail) เพื่อให้มองเห็นเวลายิงเร็วๆ
-        TrailRenderer tr = bulletObj.AddComponent<TrailRenderer>();
-        tr.time = 0.1f;
-        tr.startWidth = 0.1f;
-        tr.endWidth = 0f;
-        tr.material = new Material(Shader.Find("Sprites/Default"));
-        tr.startColor = Color.yellow;
-        tr.endColor = new Color(1, 1, 0, 0);
-
-        // ติดสคริปต์ Bullet
-        Bullet bulletScript = bulletObj.AddComponent<Bullet>();
-        bulletScript.damage = gunEq.damageValue;
-        bulletScript.speed = 100f; // เพิ่มความเร็วให้สมจริงขึ้น
     }
 
     System.Collections.IEnumerator ReloadWeaponCoroutine()
@@ -365,6 +382,13 @@ public class PlayerInventory : MonoBehaviour
         // เช็คการฮีลเลือด
         if (currentEq.healValue > 0)
         {
+            // ถ้าเลือดเต็มอยู่แล้ว ให้ตัดจบไม่ใช้ยา
+            if (PlayerStats.playerStats.currentHP >= PlayerStats.playerStats.maxHP)
+            {
+                Debug.Log("เลือดเต็มอยู่แล้ว ไม่สามารถใช้โพชันเลือดได้!");
+                return;
+            }
+
             PlayerStats.playerStats.currentHP += currentEq.healValue;
             if (PlayerStats.playerStats.currentHP > PlayerStats.playerStats.maxHP)
                 PlayerStats.playerStats.currentHP = PlayerStats.playerStats.maxHP;
@@ -374,6 +398,13 @@ public class PlayerInventory : MonoBehaviour
         // เช็คการเพิ่มเกราะ
         if (currentEq.shieldValue > 0)
         {
+            // ถ้าเกราะเต็มอยู่แล้ว ให้ตัดจบไม่ใช้ยา
+            if (PlayerStats.playerStats.currentShield >= PlayerStats.playerStats.maxShield)
+            {
+                Debug.Log("เกราะเต็มอยู่แล้ว ไม่สามารถใช้โพชันเกราะได้!");
+                return;
+            }
+
             PlayerStats.playerStats.currentShield += currentEq.shieldValue;
             if (PlayerStats.playerStats.currentShield > PlayerStats.playerStats.maxShield)
                 PlayerStats.playerStats.currentShield = PlayerStats.playerStats.maxShield;
@@ -508,6 +539,10 @@ public class PlayerInventory : MonoBehaviour
             Destroy(currentSpawnedModel);
             currentSpawnedModel = null;
         }
+
+        // เช็กถ้าเป็นโพชัน (Health หรือ Shield) แต่จำนวนเป็น 0 หรือต่ำกว่า ให้ตัดจบไม่สร้างโมเดล
+        if (currentSelectedSlot == ItemSlot.HealthPotion && healthPotionCount <= 0) return;
+        if (currentSelectedSlot == ItemSlot.ShieldPotion && shieldPotionCount <= 0) return;
     
         // เช็กว่าช่องนั้นมี SO อยู่จริงไหม และมี Mesh หรือไม่
         if (equipment != null && equipment.itemMesh != null && handTransform != null)
