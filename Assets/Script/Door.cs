@@ -10,6 +10,8 @@ public class Door : MonoBehaviour
     public float moveDistance = -10f; // ระยะทางที่ต้องการขยับในแกน X
 
     private bool isPlayerInTrigger = false;
+    public AudioSource audioSource; // ลาก AudioSource ของประตูมาใส่ที่นี่
+    public AudioClip audioClip; // ลาก AudioClip ของเสียงประตูมาใส่ที่นี่
 
     void Start()
     {
@@ -41,6 +43,7 @@ public class Door : MonoBehaviour
         // ขยับตำแหน่งแกน X ของวัตถุไปทางซ้าย -10 (เป้าหมายแบบ Relative)
         Vector3 currentPosition = objectToMove.transform.position;
         objectToMove.transform.position = new Vector3(currentPosition.x + moveDistance, currentPosition.y, currentPosition.z);
+        audioSource.Play(); // เล่นเสียงประตู
 
         // หลังจากกดใช้งานแล้ว สามารถเลือกว่าจะซ่อนข้อความเลยไหม (ตัวเลือกเสริม)
         if (interactTextUI != null)
