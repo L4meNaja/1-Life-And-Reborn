@@ -24,8 +24,8 @@ MonoBehaviour:
   reloadTime: 0
   healValue: 0
   shieldValue: 0
-  itemMesh: {fileID: -2432090755550338912, guid: 4d3bdbbf8cd12ca4e8fc71e4536108a3, type: 3}
-  itemMaterial: {fileID: -3033667219593020291, guid: 4d3bdbbf8cd12ca4e8fc71e4536108a3, type: 3}
+  itemMesh: {fileID: -8211787977035241703, guid: ef40d63eb6bd73e4b89a0a091e7e002c, type: 3}
+  itemMaterial: {fileID: 2100000, guid: d31e38d56d57f2a4c9447c89e712fac8, type: 2}
   itemPos: {x: 0, y: 0.5, z: -2}
   itemRot: {x: 90, y: 0, z: 0}
   itemSize: {x: 10, y: 10, z: 10}
