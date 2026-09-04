@@ -3,25 +3,31 @@ using UnityEngine;
 public class Door : MonoBehaviour
 {
     [Header("UI Elements")]
-    public GameObject interactTextUI; // ลาก Canvas World Space มาใส่ที่นี่
+    public GameObject interactTextUI;
 
     [Header("Movement Settings")]
-    public GameObject objectToMove;  // ลากวัตถุที่ต้องการให้ขยับมาใส่ที่นี่ (ถ้าเป็นตัวมันเองก็ลากตัวเองมาใส่)
-    public float moveDistance = -10f; // ระยะทางที่ต้องการขยับในแกน X
+    public GameObject objectToMove;
+    public float moveDistance = -10f;
+
+    [Header("Level Generation")]
+    public LevelGenerator levelGenerator;
 
     private bool isPlayerInTrigger = false;
-    public AudioSource audioSource; // ลาก AudioSource ของประตูมาใส่ที่นี่
-    public AudioClip audioClip; // ลาก AudioClip ของเสียงประตูมาใส่ที่นี่
+    private bool hasGenerated = false;
+
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip audioClip;
 
     void Start()
     {
-        // เริ่มต้นเกมให้แน่ใจว่าข้อความถูกซ่อนไว้ก่อน
+        // ซ่อนข้อความตอนเริ่มเกม
         if (interactTextUI != null)
         {
             interactTextUI.SetActive(false);
         }
 
-        // หากไม่ได้ลากวัตถุที่จะขยับมา ให้ถือว่าเป็นวัตถุที่ใส่สคริปต์นี้
+        // ถ้าไม่ได้ใส่วัตถุที่จะขยับ ให้ใช้ตัวเอง
         if (objectToMove == null)
         {
             objectToMove = this.gameObject;
@@ -30,50 +36,68 @@ public class Door : MonoBehaviour
 
     void Update()
     {
-        // ถ้า Player อยู่ในโซน และกดปุ่ม E
-        if (isPlayerInTrigger && Input.GetKeyDown(KeyCode.E))
+        // Player อยู่ในโซน + กด E + ยังไม่เคยเปิด
+        if (isPlayerInTrigger && Input.GetKeyDown(KeyCode.E) && !hasGenerated)
         {
             Interact();
         }
     }
 
-    // ฟังก์ชันทำงานเมื่อกดปุ่ม E
     void Interact()
     {
-        // ขยับตำแหน่งแกน X ของวัตถุไปทางซ้าย -10 (เป้าหมายแบบ Relative)
+        // เปิดประตู
         Vector3 currentPosition = objectToMove.transform.position;
-        objectToMove.transform.position = new Vector3(currentPosition.x + moveDistance, currentPosition.y, currentPosition.z);
-        audioSource.Play(); // เล่นเสียงประตู
 
-        // หลังจากกดใช้งานแล้ว สามารถเลือกว่าจะซ่อนข้อความเลยไหม (ตัวเลือกเสริม)
+        objectToMove.transform.position = new Vector3(
+            currentPosition.x + moveDistance,
+            currentPosition.y,
+            currentPosition.z
+        );
+
+        // เล่นเสียง
+        if (audioSource != null)
+        {
+            audioSource.Play();
+        }
+
+        // สร้าง Corridor + Room
+        if (levelGenerator != null)
+        {
+            levelGenerator.GenerateLevel();
+        }
+
+        // ป้องกันการสร้างด่านซ้ำ
+        hasGenerated = true;
+
+        // ซ่อนข้อความ
         if (interactTextUI != null)
         {
             interactTextUI.SetActive(false);
         }
     }
 
-    // ตรวจสอบเมื่อ Player เดินเข้ามาในโซน Trigger
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
         {
             isPlayerInTrigger = true;
-            if (interactTextUI != null)
+
+            if (interactTextUI != null && !hasGenerated)
             {
-                interactTextUI.SetActive(true); // แสดง Text Worldspace
+                interactTextUI.SetActive(true);
             }
         }
     }
 
-    // ตรวจสอบเมื่อ Player เดินออกจากโซน Trigger
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Player"))
         {
             isPlayerInTrigger = false;
+
             if (interactTextUI != null)
             {
-                interactTextUI.SetActive(false); // ซ่อน Text Worldspace
+                interactTextUI.SetActive(false);
             }
         }
     }

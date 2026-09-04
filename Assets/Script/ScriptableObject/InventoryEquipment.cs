@@ -25,6 +25,13 @@ public class InventoryEquipment : ScriptableObject
     public Vector3 itemPos;
     public Vector3 itemRot;
     public Vector3 itemSize;
+
+    public Vector3 ammoSpawnPos;
+
+    public int bulletCount;
+    public float bulletSpread;
+    public float bulletSize;
+    public float camRecoil;
 }
 
 public enum ItemSlot { Primary , Secondary , Melee , HealthPotion , ShieldPotion }
