@@ -921,11 +921,11 @@ PlayerSettings:
   captureStartupLogs: {}
   activeInputHandler: 2
   windowsGamepadBackendHint: 0
-  cloudProjectId: 2edf1450-944f-48e8-becb-70df206eb591
+  cloudProjectId: ed0f173b-2811-4457-8334-2813c0989adc
   framebufferDepthMemorylessMode: 0
   qualitySettingsNames: []
-  projectName: 1-Life-And-Reborn 2026-07-28_15-41-00
-  organizationId: jame25819
+  projectName: 1-Life-And-Reborn
+  organizationId: unity_16031
   cloudEnabled: 0
   legacyClampBlendShapeWeights: 0
   hmiLoadingImage: {fileID: 0}
