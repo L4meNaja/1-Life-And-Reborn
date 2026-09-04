@@ -22,8 +22,8 @@ public class InventoryUI : MonoBehaviour
         [HideInInspector] public Vector2 defaultSizeDelta;
     }
 
-    [Header("UI Slots (1 to 4)")]
-    public SlotUI[] slots = new SlotUI[4];
+    [Header("UI Slots (1 to 5)")]
+    public SlotUI[] slots = new SlotUI[5];
 
     [Header("Highlight Settings")]
     public float scaleMultiplier = 1.25f;       // ขยายใหญ่ขึ้น 1.25 เท่า
@@ -100,109 +100,106 @@ public class InventoryUI : MonoBehaviour
     {
         if (playerInventory == null) return;
 
-        // วนลูปตามช่อง UI ทั้ง 4 ช่องโดยตรง (0: Primary, 1: Secondary, 2: Health, 3: Shield)
+        InventoryEquipment[] equipments = new InventoryEquipment[5]
+        {
+            playerInventory.primaryEquipment,
+            playerInventory.secondaryEquipment,
+            playerInventory.meleeEquipment,
+            playerInventory.healthPotionEquipment,
+            playerInventory.shieldPotionEquipment
+        };
+
         for (int i = 0; i < slots.Length; i++)
         {
             if (slots[i].itemTextureGraphic == null) continue;
 
-            InventoryEquipment eq = null;
-            bool isConsumable = false;
-            bool isGun = false;
-            int itemCount = -1;
+            InventoryEquipment eq = equipments[i];
 
-            // 1. ดึงข้อมูลให้ตรงตาม Index ช่อง UI อย่างชัดเจน
-            switch (i)
+            bool isConsumable = (eq != null) && (eq.itemSlot == ItemSlot.HealthPotion || eq.itemSlot == ItemSlot.ShieldPotion);
+            bool hasItem = (eq != null && eq.itemTexture != null);
+            bool shouldShowGraphic = hasItem;
+
+            // ดึง count จาก PlayerInventory แทน SO
+            int itemCount = isConsumable ? playerInventory.GetCountBySlot(eq.itemSlot) : -1;
+
+            if (isConsumable && itemCount <= 0)
             {
-                case 0: // Primary
-                    eq = playerInventory.primaryEquipment;
-                    isGun = true;
-                    break;
-                case 1: // Secondary
-                    eq = playerInventory.secondaryEquipment;
-                    isGun = true;
-                    break;
-                case 2: // Health Potion
-                    eq = playerInventory.healthPotionEquipment;
-                    isConsumable = true;
-                    itemCount = playerInventory.healthPotionCount;
-                    break;
-                case 3: // Shield Potion
-                    eq = playerInventory.shieldPotionEquipment;
-                    isConsumable = true;
-                    itemCount = playerInventory.shieldPotionCount;
-                    break;
+                shouldShowGraphic = false; // ซ่อนเฉพาะยาถ้าหมด
             }
 
-            // 2. เช็คว่าไม่มีไอเทม หรือเป็นยาที่จำนวนหมด (count <= 0) ให้ซ่อน UI ช่องนี้ทันที
-            if (eq == null || eq.itemTexture == null || (isConsumable && itemCount <= 0))
+            if (shouldShowGraphic)
             {
-                slots[i].itemTextureGraphic.gameObject.SetActive(false);
-                if (slots[i].countText != null) slots[i].countText.gameObject.SetActive(false);
-                if (slots[i].ammoInvText != null) slots[i].ammoInvText.gameObject.SetActive(false);
-                continue; // ข้ามไปทำช่องถัดไป
-            }
+                slots[i].itemTextureGraphic.gameObject.SetActive(true);
 
-            // 3. แสดงรูปภาพไอเทม
-            slots[i].itemTextureGraphic.gameObject.SetActive(true);
-
-            if (slots[i].itemTextureGraphic is RawImage rawImg)
-            {
-                rawImg.texture = eq.itemTexture;
-            }
-            else if (slots[i].itemTextureGraphic is Image img)
-            {
-                if (!cachedSprites.ContainsKey(eq.itemTexture))
+                // ตั้งค่ารูปภาพตามประเภทของ Graphic (Image หรือ RawImage)
+                if (slots[i].itemTextureGraphic is RawImage rawImg)
                 {
-                    Sprite newSprite = Sprite.Create(eq.itemTexture, new Rect(0, 0, eq.itemTexture.width, eq.itemTexture.height), new Vector2(0.5f, 0.5f));
-                    cachedSprites[eq.itemTexture] = newSprite;
+                    rawImg.texture = eq.itemTexture;
                 }
-                img.sprite = cachedSprites[eq.itemTexture];
-            }
+                else if (slots[i].itemTextureGraphic is Image img)
+                {
+                    if (!cachedSprites.ContainsKey(eq.itemTexture))
+                    {
+                        Sprite newSprite = Sprite.Create(eq.itemTexture, new Rect(0, 0, eq.itemTexture.width, eq.itemTexture.height), new Vector2(0.5f, 0.5f));
+                        cachedSprites[eq.itemTexture] = newSprite;
+                    }
+                    img.sprite = cachedSprites[eq.itemTexture];
+                }
 
-            // ปรับ Scale รูป
-            RectTransform texRect = slots[i].itemTextureGraphic.rectTransform;
-            if (eq.textureSize.x > 0 && eq.textureSize.y > 0)
-            {
-                texRect.localScale = eq.textureSize;
+                // === ปรับขนาดโดยใช้ LocalScale ตาม textureSize ใน ScriptableObject อัตโนมัติ ===
+                RectTransform texRect = slots[i].itemTextureGraphic.rectTransform;
+                if (eq.textureSize.x > 0 && eq.textureSize.y > 0)
+                {
+                    texRect.localScale = eq.textureSize;
+                }
+                else
+                {
+                    texRect.localScale = new Vector3(10, 10, 10);
+                }
+
+                bool isGun = (eq.itemSlot == ItemSlot.Primary || eq.itemSlot == ItemSlot.Secondary);
+
+                // แสดงจำนวน ItemCount (ยา หรือ กระสุนแม็กกาซีน)
+                if (slots[i].countText != null)
+                {
+                    if (isConsumable)
+                    {
+                        slots[i].countText.gameObject.SetActive(true);
+                        slots[i].countText.text = itemCount.ToString();
+                    }
+                    else if (isGun)
+                    {
+                        slots[i].countText.gameObject.SetActive(true);
+                        int currentAmmo = eq.itemSlot == ItemSlot.Primary ? playerInventory.primaryAmmoCount : playerInventory.secondaryAmmoCount;
+                        slots[i].countText.text = currentAmmo.ToString();
+                    }
+                    else
+                    {
+                        slots[i].countText.gameObject.SetActive(false); // ซ่อนเลขของมีด
+                    }
+                }
+
+                // แสดงจำนวนกระสุนสำรอง (แสดงเฉพาะปืน)
+                if (slots[i].ammoInvText != null)
+                {
+                    if (isGun)
+                    {
+                        slots[i].ammoInvText.gameObject.SetActive(true);
+                        int invAmmo = eq.itemSlot == ItemSlot.Primary ? playerInventory.primaryInvAmmo : playerInventory.secondaryInvAmmo;
+                        slots[i].ammoInvText.text = invAmmo.ToString();
+                    }
+                    else
+                    {
+                        slots[i].ammoInvText.gameObject.SetActive(false);
+                    }
+                }
             }
             else
             {
-                texRect.localScale = new Vector3(10, 10, 10);
-            }
-
-            // 4. แสดงจำนวน Item / กระสุน
-            if (slots[i].countText != null)
-            {
-                if (isConsumable)
-                {
-                    slots[i].countText.gameObject.SetActive(true);
-                    slots[i].countText.text = itemCount.ToString();
-                }
-                else if (isGun)
-                {
-                    slots[i].countText.gameObject.SetActive(true);
-                    int currentAmmo = (i == 0) ? playerInventory.primaryAmmoCount : playerInventory.secondaryAmmoCount;
-                    slots[i].countText.text = currentAmmo.ToString();
-                }
-                else
-                {
-                    slots[i].countText.gameObject.SetActive(false);
-                }
-            }
-
-            // 5. แสดงกระสุนสำรอง (ปืนเท่านั้น)
-            if (slots[i].ammoInvText != null)
-            {
-                if (isGun)
-                {
-                    slots[i].ammoInvText.gameObject.SetActive(true);
-                    int invAmmo = (i == 0) ? playerInventory.primaryInvAmmo : playerInventory.secondaryInvAmmo;
-                    slots[i].ammoInvText.text = invAmmo.ToString();
-                }
-                else
-                {
-                    slots[i].ammoInvText.gameObject.SetActive(false);
-                }
+                // ถ้าไม่มีไอเทม หรือเป็นยาที่หมดแล้ว
+                slots[i].itemTextureGraphic.gameObject.SetActive(false);
+                if (slots[i].countText != null) slots[i].countText.gameObject.SetActive(false);
+                if (slots[i].ammoInvText != null) slots[i].ammoInvText.gameObject.SetActive(false);
             }
         }
     }

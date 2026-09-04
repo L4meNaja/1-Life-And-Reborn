@@ -43,10 +43,6 @@ public class PickableShield : MonoBehaviour
     {
         if (playerStats != null)
         {
-            // ซ่อน UI และ Text ทันทีที่กดเก็บ
-            if (interactUI != null) interactUI.SetActive(false);
-            if (textCanvasObject != null) textCanvasObject.SetActive(false);
-
             playerStats.maxShield = shieldAmount;
             playerStats.currentShield = playerStats.maxShield;
 

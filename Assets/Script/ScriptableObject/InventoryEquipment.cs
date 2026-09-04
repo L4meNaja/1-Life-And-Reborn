@@ -6,6 +6,7 @@ public class InventoryEquipment : ScriptableObject
     public ItemSlot itemSlot;
 
     public float damageValue;
+    public int reach;
     public float attackSpeed;
     public int maxAmmo;
     public int currentAmmo;
@@ -33,4 +34,4 @@ public class InventoryEquipment : ScriptableObject
     public float camRecoil;
 }
 
-public enum ItemSlot { Primary , Secondary , HealthPotion , ShieldPotion }
+public enum ItemSlot { Primary , Secondary , Melee , HealthPotion , ShieldPotion }
