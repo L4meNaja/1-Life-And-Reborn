@@ -4,7 +4,7 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public Camera playerCamera;
-
+    
     [Header("Speed Settings")]
     public float baseSpeed = 10f;
     
@@ -22,7 +22,7 @@ public class PlayerMovement : MonoBehaviour
     public float sliderTimer = 2.0f;
 
     public float jumpPower = 7f;
-    public float gravity = 50f;
+    public float gravity = 10f;
     public float lookSpeed = 2f;
     public float lookXLimit = 45f;
     public float defaultHeight = 2f;
@@ -32,7 +32,7 @@ public class PlayerMovement : MonoBehaviour
     private float rotationX = 0;
     private CharacterController characterController;
 
-    private bool canMove = true;
+    public bool canMove = true;
 
     void Start()
     {
