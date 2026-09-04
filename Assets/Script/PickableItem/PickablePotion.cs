@@ -32,6 +32,9 @@ public class PickablePotion : MonoBehaviour
     {
         if (playerInventory != null)
         {
+            // ซ่อนข้อความแจ้งเตือน (Text / UI) ทันทีที่กดเก็บ
+            if (interactUI != null) interactUI.SetActive(false);
+
             // แปลง targetSlotIndex ให้ตรงกับ ItemSlot ของยา
             ItemSlot targetSlot = ItemSlot.HealthPotion;
             if (targetSlotIndex == 3) targetSlot = ItemSlot.HealthPotion;
@@ -61,7 +64,6 @@ public class PickablePotion : MonoBehaviour
                 playerInventory.inventoryUI.UpdateAllSlotsItemDisplay();
             }
 
-            if (interactUI != null) interactUI.SetActive(false);
             Destroy(gameObject);
         }
     }
