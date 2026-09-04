@@ -19,13 +19,18 @@ MonoBehaviour:
   maxAmmo: 0
   currentAmmo: 0
   invAmmo: 0
-  count: 0
   itemTexture: {fileID: 2800000, guid: 79c8ef689db25b64b9fc9016444f335b, type: 3}
   textureSize: {x: 7.5, y: 15, z: 7.5}
+  reloadTime: 0
   healValue: 0
   shieldValue: 25
-  itemMesh: {fileID: -2432090755550338912, guid: 78de26b55b4eee147b99ee8919e8f6fd, type: 3}
-  itemMaterial: {fileID: -3033667219593020291, guid: 4d3bdbbf8cd12ca4e8fc71e4536108a3, type: 3}
-  itemPos: {x: 0, y: -4.5, z: 0}
+  itemMesh: {fileID: -4167409557816633754, guid: 659a5b332272f9d49a6f94561fe77809, type: 3}
+  itemMaterial: {fileID: 2100000, guid: 3f310394fb4978a4cbb13bffebe9e86c, type: 2}
+  itemPos: {x: 0, y: -0.5, z: 0}
   itemRot: {x: 0, y: 90, z: 0}
   itemSize: {x: 5, y: 5, z: 5}
+  ammoSpawnPos: {x: 0, y: 0, z: 0}
+  bulletCount: 0
+  bulletSpread: 0
+  bulletSize: 0
+  camRecoil: 0

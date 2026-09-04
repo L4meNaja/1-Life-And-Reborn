@@ -2,9 +2,15 @@ using UnityEngine;
 
 public class PlayerInventory : MonoBehaviour
 {
+    [Header("Weapons")]
+    public bool hasPistol;
+    public bool hasRifle;  
+    public bool hasShotgun;
+
     [Header("UI Reference")]
     public InventoryUI inventoryUI;
     public ReloadTimerUI reloadTimerUI; // ลากสคริปต์ ReloadTimerUI มาใส่ตรงนี้
+    public CameraController cameraController;
 
     [Header("Hand Transform (จุดอ้างอิงที่มือ)")]
     public Transform handTransform; // ลาก Transform เปล่าที่มือมาใส่ตรงนี้
@@ -29,9 +35,7 @@ public class PlayerInventory : MonoBehaviour
     public int secondaryAmmoCount = 0;
     public int secondaryInvAmmo = 0;
 
-    [Header("Melee & Shoot Settings")]
-    public float meleeAttackCooldown = 0.5f; // คูลดาวน์การโจมตี Melee
-    private float lastMeleeAttackTime = -999f;
+    [Header("Shoot Settings")]
     private float lastShootTime = -999f;
     private Coroutine currentSwingCoroutine;
     private bool isReloading = false;
@@ -57,6 +61,23 @@ public class PlayerInventory : MonoBehaviour
         CheckNumberInput();
         CheckUseItem();
         CheckReload();
+    }
+
+    public void ApplyRandomizedInventory(bool pistol, bool rifle, bool shotgun, int potions)
+    {
+        // กำหนดค่าสิทธิ์การครอบครองปืน
+        hasPistol = pistol;
+        hasRifle = rifle;
+        hasShotgun = shotgun;
+    
+        // กำหนดจำนวนยา (อัปเดตใส่ healthPotionCount)
+        healthPotionCount = potions; 
+    
+        // สั่งอัปเดต UI ให้ตรงกับไอเทมที่มี
+        if (inventoryUI != null)
+        {
+            inventoryUI.UpdateAllSlotsItemDisplay();
+        }
     }
 
     void CheckReload()
@@ -95,10 +116,6 @@ public class PlayerInventory : MonoBehaviour
             {
                 ShootWeapon();
             }
-            else if (currentSelectedSlot == ItemSlot.Melee)
-            {
-                MeleeAttack();
-            }
             else if (currentSelectedSlot == ItemSlot.HealthPotion || currentSelectedSlot == ItemSlot.ShieldPotion)
             {
                 UseCurrentItem();
@@ -111,7 +128,7 @@ public class PlayerInventory : MonoBehaviour
         InventoryEquipment gunEq = GetEquipmentBySlot(currentSelectedSlot);
         if (gunEq == null) return;
 
-        // เช็ค Fire Rate (ใช้ attackSpeed จาก SO ถ้าไม่ได้ตั้งให้ยิงรัว 5 นัด/วิ)
+        // เช็ค Fire Rate
         float fireRate = gunEq.attackSpeed > 0 ? 1f / gunEq.attackSpeed : 0.2f;
         if (Time.time - lastShootTime < fireRate) return;
 
@@ -131,48 +148,49 @@ public class PlayerInventory : MonoBehaviour
 
         // อัปเดต UI 
         if (inventoryUI != null) inventoryUI.UpdateAllSlotsItemDisplay();
-        
-        // สร้างเม็ดกระสุน
+
+        // เรียก Recoil โดยใช้ค่า camRecoil จาก SO ตัวเดียว
+        if (CameraController.Instance != null)
+        {
+            Vector3 randomRecoil = Random.insideUnitSphere * gunEq.camRecoil;
+            // Y ใช้ Mathf.Abs เพื่อให้กล้องสะบัดขึ้นเสมอ, Z ใช้ Mathf.Abs เพื่อให้ถอยหลัง
+            CameraController.Instance.ShoulderOffset(randomRecoil.x, Mathf.Abs(randomRecoil.y), Mathf.Abs(randomRecoil.z));
+        }
+
+        // หา Camera
         Camera cam = Camera.main;
         if (cam == null) cam = GetComponentInChildren<Camera>();
         if (cam == null) cam = Object.FindFirstObjectByType<Camera>();
         if (cam == null) return;
 
-        // 1. กำหนดจุดเกิดกระสุนให้ออกมาจากตำแหน่ง ammoSpawnPos ที่ตั้งไว้ใน ScriptableObject ของปืนนั้นๆ
+        // 1. กำหนดจุดเกิดกระสุน
         Vector3 spawnPos = handTransform.position;
         if (currentSpawnedModel != null)
         {
             spawnPos = currentSpawnedModel.transform.TransformPoint(gunEq.ammoSpawnPos);
         }
 
-        // กำหนดจำนวนกระสุนต่อการยิง 1 ครั้ง (ถ้าไม่ได้ตั้งค่าใน SO ให้เป็น 1)
         int count = gunEq.bulletCount > 0 ? gunEq.bulletCount : 1;
 
-        // วนลูปสร้างกระสุนตามจำนวน bulletCount (รองรับทั้งปืนปกติและลูกซอง)
+        // 2. ลูปสร้างกระสุน
         for (int i = 0; i < count; i++)
         {
-            // 2. สร้างกระสุน
             GameObject bulletObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             bulletObj.transform.position = spawnPos;
-            
-            // ตั้งต้นการหมุนจากทิศทางของตัวละครผู้เล่น
+
             Quaternion baseRotation = transform.rotation;
 
-            // คำนวณการกระจาย (Spread) ใช้ได้ทั้ง bulletCount = 1 หรือมากกว่า
             float spreadAmount = gunEq.bulletSpread;
             float randomYaw = Random.Range(-spreadAmount, spreadAmount);
             float randomPitch = Random.Range(-spreadAmount, spreadAmount);
-            
-            // เพิ่มมุมสุ่มความกระจายเข้าไปจากทิศทางหลัก
+
             Quaternion spreadRotation = Quaternion.Euler(randomPitch, randomYaw, 0f);
             bulletObj.transform.rotation = baseRotation * spreadRotation;
 
-            bulletObj.transform.localScale = new Vector3(0.0f, 0.0f, 0.0f);
+            bulletObj.transform.localScale = Vector3.zero;
 
-            // ลบ Collider เก่าทิ้ง ป้องกัน Physics กวนกัน
             Destroy(bulletObj.GetComponent<Collider>());
 
-            // ปิดเงาให้กระสุนและเปลี่ยนเป็นสีเหลือง
             MeshRenderer mr = bulletObj.GetComponent<MeshRenderer>();
             if (mr != null)
             {
@@ -181,7 +199,6 @@ public class PlayerInventory : MonoBehaviour
                 mr.material.color = Color.yellow;
             }
 
-            // เพิ่มแสงหาง (Trail)
             TrailRenderer tr = bulletObj.AddComponent<TrailRenderer>();
             tr.time = 0.1f;
             tr.startWidth = 0.1f;
@@ -190,7 +207,6 @@ public class PlayerInventory : MonoBehaviour
             tr.startColor = Color.yellow;
             tr.endColor = new Color(1, 1, 0, 0);
 
-            // ติดสคริปต์ Bullet
             Bullet bulletScript = bulletObj.AddComponent<Bullet>();
             bulletScript.damage = gunEq.damageValue;
             bulletScript.speed = 100f;
@@ -281,89 +297,6 @@ public class PlayerInventory : MonoBehaviour
     {
         if (slot == ItemSlot.Primary) return ref primaryInvAmmo;
         return ref secondaryInvAmmo;
-    }
-
-    void MeleeAttack()
-    {
-        InventoryEquipment meleeEq = GetEquipmentBySlot(ItemSlot.Melee);
-        if (meleeEq == null) return;
-
-        // เช็คคูลดาวน์ (ใช้ attackSpeed จาก SO ถ้ามีค่า ไม่งั้นใช้ค่า default)
-        float cooldown = meleeEq.attackSpeed > 0 ? 1f / meleeEq.attackSpeed : meleeAttackCooldown;
-        if (Time.time - lastMeleeAttackTime < cooldown) return;
-        lastMeleeAttackTime = Time.time;
-
-        float damage = meleeEq.damageValue;
-        
-        // เล่นอนิเมชันตี (หมุนมือ) พร้อมกับเปิดใช้งาน Hitbox ที่ตัวอาวุธ
-        if (currentSpawnedModel != null)
-        {
-            if (currentSwingCoroutine != null) StopCoroutine(currentSwingCoroutine);
-            currentSwingCoroutine = StartCoroutine(SwingWeaponAnimation(damage));
-        }
-    }
-
-    System.Collections.IEnumerator SwingWeaponAnimation(float damage)
-    {
-        if (handTransform == null) yield break;
-
-        // ถ้ามีการใส่ armTransform มา ให้หมุนทั้งแขน ถ้าไม่มีก็หมุนแค่จุดที่ถือดาบ
-        Transform swingTarget = armTransform != null ? armTransform : handTransform;
-
-        // เปิดโหมดโจมตีให้สคริปต์ที่ติดอยู่กับตัวอาวุธ
-        MeleeWeaponHitbox hitbox = null;
-        if (currentSpawnedModel != null)
-        {
-            hitbox = currentSpawnedModel.GetComponent<MeleeWeaponHitbox>();
-            if (hitbox != null) hitbox.StartAttack(damage);
-        }
-
-        // บันทึกมุมเริ่มต้นของมือ/แขน
-        Quaternion startRot = swingTarget.localRotation;
-        
-        // กำหนดมุมต่างๆ
-        Quaternion windupRot = startRot * Quaternion.Euler(-30f, 10f, 0f); // ยกขึ้นและเอียงขวานิดๆ
-        Quaternion strikeRot = startRot * Quaternion.Euler(60f, -10f, 0f); // ฟาดลงมาและเอียงซ้ายนิดๆ
-
-        float windupTime = 0.05f;
-        float strikeTime = 0.1f;
-        float recoverTime = 0.15f;
-        float t = 0;
-
-        // 1. ง้างดาบ (Windup)
-        while (t < windupTime)
-        {
-            t += Time.deltaTime;
-            swingTarget.localRotation = Quaternion.Slerp(startRot, windupRot, t / windupTime);
-            yield return null;
-        }
-
-        // 2. ฟาดดาบลง (Strike)
-        t = 0;
-        while (t < strikeTime)
-        {
-            t += Time.deltaTime;
-            swingTarget.localRotation = Quaternion.Slerp(windupRot, strikeRot, t / strikeTime);
-            yield return null;
-        }
-
-        // 3. ดึงดาบกลับ (Recover)
-        t = 0;
-        while (t < recoverTime)
-        {
-            t += Time.deltaTime;
-            swingTarget.localRotation = Quaternion.Slerp(strikeRot, startRot, t / recoverTime);
-            yield return null;
-        }
-
-        // คืนค่ามุมเดิมเป๊ะๆ
-        swingTarget.localRotation = startRot;
-
-        // ปิดโหมดโจมตี
-        if (hitbox != null)
-        {
-            hitbox.EndAttack();
-        }
     }
 
     void UseCurrentItem()
@@ -459,7 +392,6 @@ public class PlayerInventory : MonoBehaviour
         {
             case ItemSlot.Primary: primaryEquipment = null; break;
             case ItemSlot.Secondary: secondaryEquipment = null; break;
-            case ItemSlot.Melee: meleeEquipment = null; break;
             case ItemSlot.HealthPotion: healthPotionEquipment = null; break;
             case ItemSlot.ShieldPotion: shieldPotionEquipment = null; break;
         }
@@ -476,9 +408,8 @@ public class PlayerInventory : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) SelectSlot(ItemSlot.Primary, 0);
         else if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) SelectSlot(ItemSlot.Secondary, 1);
-        else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) SelectSlot(ItemSlot.Melee, 2);
-        else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) SelectSlot(ItemSlot.HealthPotion, 3);
-        else if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) SelectSlot(ItemSlot.ShieldPotion, 4);
+        else if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) SelectSlot(ItemSlot.HealthPotion, 2);
+        else if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) SelectSlot(ItemSlot.ShieldPotion, 3);
     }
 
     void SelectSlot(ItemSlot slot, int slotIndex)
@@ -517,7 +448,6 @@ public class PlayerInventory : MonoBehaviour
         {
             case ItemSlot.Primary: return primaryEquipment;
             case ItemSlot.Secondary: return secondaryEquipment;
-            case ItemSlot.Melee: return meleeEquipment;
             case ItemSlot.HealthPotion: return healthPotionEquipment;
             case ItemSlot.ShieldPotion: return shieldPotionEquipment;
             default: return null;
@@ -571,21 +501,6 @@ public class PlayerInventory : MonoBehaviour
             if (equipment.itemMaterial != null)
             {
                 mr.material = equipment.itemMaterial;
-            }
-
-            // ถ้าเป็นอาวุธประชิด ให้ติดตั้งระบบฟิสิกส์ชนเพื่อโจมตี
-            if (equipment.itemSlot == ItemSlot.Melee)
-            {
-                // ใส่ BoxCollider และให้ปรับขนาดคลุมโมเดลอัตโนมัติ
-                BoxCollider col = currentSpawnedModel.AddComponent<BoxCollider>();
-                col.isTrigger = true;
-
-                // ใส่ Rigidbody แบบ Kinematic เพื่อให้เช็คชนได้
-                Rigidbody rb = currentSpawnedModel.AddComponent<Rigidbody>();
-                rb.isKinematic = true;
-
-                // ใส่สคริปต์ตรวจจับการตี
-                currentSpawnedModel.AddComponent<MeleeWeaponHitbox>();
             }
         }
     }

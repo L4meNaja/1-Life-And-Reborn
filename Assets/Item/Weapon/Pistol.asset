@@ -33,4 +33,4 @@ MonoBehaviour:
   bulletCount: 1
   bulletSpread: 1
   bulletSize: 0
-  camRecoil: 10
+  camRecoil: 0.25

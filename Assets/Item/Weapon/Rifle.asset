@@ -24,13 +24,13 @@ MonoBehaviour:
   reloadTime: 2.5
   healValue: 0
   shieldValue: 0
-  itemMesh: {fileID: -6389298116801341943, guid: d7898374b612ff945a1ce7155332b793, type: 3}
+  itemMesh: {fileID: -8211787977035241703, guid: ef40d63eb6bd73e4b89a0a091e7e002c, type: 3}
   itemMaterial: {fileID: 2100000, guid: 3f310394fb4978a4cbb13bffebe9e86c, type: 2}
-  itemPos: {x: 0, y: 0.5, z: -2}
-  itemRot: {x: 90, y: 0, z: 0}
+  itemPos: {x: 0, y: 0.5, z: 1}
+  itemRot: {x: 0, y: 0, z: 0}
   itemSize: {x: 10, y: 10, z: 10}
-  ammoSpawnPos: {x: 0, y: 1, z: 0}
+  ammoSpawnPos: {x: 0, y: 0.05, z: 0}
   bulletCount: 1
   bulletSpread: 1.5
   bulletSize: 0
-  camRecoil: 20
+  camRecoil: 0.36125

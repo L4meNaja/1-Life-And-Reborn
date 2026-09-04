@@ -22,8 +22,8 @@ public class InventoryUI : MonoBehaviour
         [HideInInspector] public Vector2 defaultSizeDelta;
     }
 
-    [Header("UI Slots (1 to 5)")]
-    public SlotUI[] slots = new SlotUI[5];
+    [Header("UI Slots (1 to 4)")]
+    public SlotUI[] slots = new SlotUI[4];
 
     [Header("Highlight Settings")]
     public float scaleMultiplier = 1.25f;       // ขยายใหญ่ขึ้น 1.25 เท่า
@@ -100,11 +100,10 @@ public class InventoryUI : MonoBehaviour
     {
         if (playerInventory == null) return;
 
-        InventoryEquipment[] equipments = new InventoryEquipment[5]
+        InventoryEquipment[] equipments = new InventoryEquipment[4]
         {
             playerInventory.primaryEquipment,
             playerInventory.secondaryEquipment,
-            playerInventory.meleeEquipment,
             playerInventory.healthPotionEquipment,
             playerInventory.shieldPotionEquipment
         };
