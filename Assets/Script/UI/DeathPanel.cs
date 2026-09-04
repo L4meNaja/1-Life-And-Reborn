@@ -54,6 +54,7 @@ public class DeathPanel : MonoBehaviour
         ResetPanelUI();
     }
 
+
     private void Update()
     {
         if (Input.GetMouseButtonDown(0) && !isAnimating && currentStep > 0)

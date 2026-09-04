@@ -1052,7 +1052,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &334756308
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2109,15 +2109,6 @@ MonoBehaviour:
     countText: {fileID: 128940648}
     ammoInvText: {fileID: 740835227}
     rectTransform: {fileID: 1565510003}
-    defaultAnchoredPosition: {x: 0, y: 0}
-    defaultScale: {x: 0, y: 0, z: 0}
-    defaultSizeDelta: {x: 0, y: 0}
-  - slotGameObject: {fileID: 0}
-    slotImage: {fileID: 0}
-    itemTextureGraphic: {fileID: 0}
-    countText: {fileID: 0}
-    ammoInvText: {fileID: 0}
-    rectTransform: {fileID: 0}
     defaultAnchoredPosition: {x: 0, y: 0}
     defaultScale: {x: 0, y: 0, z: 0}
     defaultSizeDelta: {x: 0, y: 0}
@@ -3318,7 +3309,7 @@ MonoBehaviour:
   hasShotgun: 0
   inventoryUI: {fileID: 488230422}
   reloadTimerUI: {fileID: 1738246696}
-  cameraController: {fileID: 0}
+  cameraController: {fileID: 64556641}
   handTransform: {fileID: 839412855}
   armTransform: {fileID: 839412855}
   primaryEquipment: {fileID: 11400000, guid: a4fb7f46a7c1626498e169c8bff7ed01, type: 2}
